@@ -1,0 +1,135 @@
+---
+title: "High School Seniors t Test"
+output: 
+  html_document:
+    theme: cerulean
+    code_folding: hide
+---
+
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(DT)
+library(pander)
+library(readr)
+library(mosaic)
+library(car)
+HSS <- read_csv("../../Data/HighSchoolSeniors.csv")
+#Remember: select "Session, Set Working Directory, To Source File Location", and then play this R-chunk into your console to read the HSS data into R. 
+```
+
+<!-- Instructions
+
+1. Use the HSS dataset in R to come up with a question that can be answered with a t Test. 
+
+Here is a link to the survey given to the students that participated in the study:
+https://ww2.amstat.org/censusatschool/pdfs/C@SQuestionnaire.pdf
+(Use the link to learn about what each column of data in the data set represents.)
+
+2. Establish why your question is interesting and rephrase the question using a statistical "null" and "alternative" hypothesis. (Hint, see the "Math 325 Notebook -> R Help -> R-Markdown Hints" page of your textbook for instructions on how to write mathematical hypotheses.)
+
+3. Clearly answer your question using statistics. Be sure to compute a p-value and provide supporting numerical and graphical summaries.
+
+Note: you can create "groups" from the data in many ways. For example, suppose you wanted to create a variable that grouped people according to whether they thought recycling was more important than conserving water. You could do this by:
+
+```{r}
+HSS <- HSS %>%
+  mutate(recycling_than_water = ifelse(Importance_recycling_rubbish >	Importance_conserving_water, "Recycling More Important", "Water Conservation More Important"))
+```
+
+-->
+
+## Background
+
+In the small town of Cheney, Washington, at Cheney High School, there is held the largest slap jack competition on earth. This competition is held the last day of school in June (the school fittingly picked a J month for Jack). This competition is more competitive than any other sport offered during the school year. Students start preparing from their elementary years to get a head start. The reason for this excessive preparation and competition is that if he/she wins, they'll get their high school diploma (no matter the grades they have completed). The founder of Cheney, WA was the world's greatest slap jack player, so, in honor and memory of him, this award is given to the winner.
+
+It is the end of the school year in Cheney High School and it is the final round of slap jack for the high school diploma. A senior against a freshman. Unfortunately, the senior in his last match was wounded from a hard slap and broke his finger. The principal decided that to only be fair, another senior should replace him. The principal looks to the soccer and basketball teams for athletes with quick reactions. The principal favored the basketball team over the soccer team. Sadly, the freshman one, and got his diploma while the other senior had to keep passing his classes.
+
+Did the principle make the best decision in choosing a basketball player for the final round?
+
+In order to test this, an experiment will be conducted using the data about seniors favorite sports from the [U.S. Census at School Questionnaire](https://ww2.amstat.org/censusatschool/pdfs/C@SQuestionnaire.pdf) to see if the difference in mean reaction times between seniors who play soccer and basketball is different than zero.
+
+Our null hypothesis and alternative hypothesis are:
+
+$$
+  H_0: \mu_\text{Basketball} =  \mu_\text{Soccer} 
+$$
+
+$$
+  H_a: \mu_\text{Basketball} \neq  \mu_\text{Soccer} 
+$$
+Because our confidence level has been set as 95%, we will make our significance level
+$$
+  \alpha = 0.05
+$$
+
+### Data
+
+Below, I have provided the data of reaction times from 36 soccer and basketball players. Three data points have been omitted (two from the basketball players and one from the soccer players) because they were 5 seconds or more and would affect the display and understanding of the data. 5 seconds is an unreasonable and inordinate amount of time to wait before reacting. It is assumed that the data for both soccer and basketball players is normally distributed.
+
+
+```{r, message=FALSE, warning=FALSE}
+ReactionTimesSoccer <- HSS %>% 
+  filter(Favourite_physical_activity=="Soccer") %>% 
+  select(c(Reaction_time))
+ReactionTimesBasketball <- HSS %>% 
+  filter(Favourite_physical_activity=="Basketball") %>% 
+  select(c(Reaction_time))
+ReactionTimesSoccer$Basketball<- ReactionTimesBasketball$Reaction_time
+ReactionTimesSoccer$Soccer <- ReactionTimesSoccer$Reaction_time
+ReactionTimesBasketballvsSoccer <- select(ReactionTimesSoccer,c(Basketball,Soccer))
+ReactionTimesBasketballvsSoccer <-  filter(ReactionTimesBasketballvsSoccer, Basketball!=5.0000 & Basketball!=6.0000)
+ReactionTimesBasketballvsSoccer <-  filter(ReactionTimesBasketballvsSoccer, Soccer!=5.0000)
+View(ReactionTimesBasketballvsSoccer)
+datatable(ReactionTimesBasketballvsSoccer, options=list(lengthMenu = c(3,10,30)), extensions="Responsive")
+```
+
+## Analysis
+
+These two box plots below will show us where the min, median, and max of the data is for both basketball and soccer. After the box plots, I added a 5 number summary which shows the exact values of what is being represented in the box plots.
+
+```{r}
+boxplot(ReactionTimesBasketballvsSoccer, col=c("firebrick","skyblue"), xlab="Favorite Sport", ylab="Reaction Time", main="Reaction Times:Basketball vs Soccer")
+```
+
+```{r, message=FALSE, warning=FALSE}
+library(mosaic)
+```
+#### Basketball Players 5 Number Summary
+```{r}
+pander(fav_stats(ReactionTimesBasketballvsSoccer$Basketball))
+```
+
+#### Soccer Players 5 Number Summary
+
+```{r}
+pander(fav_stats(ReactionTimesBasketballvsSoccer$Soccer))
+```
+
+Looking at the box plot and 5 number summaries,the max value for soccer players is lower than the 75 percentile of basketball players. This means that the probability of selecting a soccer player with a lower reaction time is greater than randomly selecting a basketball player. This might mean that the principal should have chosen a soccer player, but when comparing means, there is a negligible difference between basketball and soccer players. 
+
+Since we cannot draw a solid conclusion from this data we will have to use a statistical test to have a satisfactory inference for this data and to generalize our findings for other populations if possible.
+
+### Independent Sample T-Test
+
+We conducted the independent sample t-test and found these results:
+
+```{r, message=FALSE, warning=FALSE}
+pander(t.test(ReactionTimesBasketballvsSoccer$Basketball, ReactionTimesBasketballvsSoccer$Soccer, mu=0, alternative="two.sided", conf.level=0.95))
+
+```
+
+### QQ-Plot
+
+Based on these QQ-Plots, there is a slight abnormality, but this will not invalidate our test seeing that there is no strong skew found in the data. It is also important to state that the sample size is substantial (greater than 30) and will thus invoke the power of the Central Limit Theorem so as to be confident in the efficacy of our test.
+
+```{r,message=FALSE, warning=FALSE}
+qqPlot(ReactionTimesBasketballvsSoccer$Basketball, xlab="Standard Deviation from Mean", ylab ="Reaction Times", main="Normality of Reaction Time Data \n (Baksetball)")
+qqPlot(ReactionTimesBasketballvsSoccer$Soccer,xlab="Standard Deviation from Mean", ylab ="Reaction Times", main="Normality of Reaction Time Data \n (Soccer)")
+```
+## Interpretation
+
+Because we have found that the $p-value$ is very close to 1 (.9667), we believe the null hypothesis to be true and that there is no significant difference between reaction times of basketball players vs soccer players. This being said, the data is not completely normal and if it were, may have resulted in a different inference. 
+
+If the data were normal, we could infer more confidently that the principal could have chosen either team to play the last match and still would have lost knowing that soccer players do not differ significantly in reaction times with basketball players. 
+
+After further consideration, my conclusion may not be very accurate due to the fact that the data from the U.S. Census at School Questionnaire asked for students' favorite sport rather than which sport are they best at. Someone whose favorite sport is soccer may not be very good at it. It would be in our best interest to create another experiment that asked for the sport that they were best at. This might give us more reliable and accurate data to reach a more satisfying conclusion.
