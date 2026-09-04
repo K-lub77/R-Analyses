@@ -1,0 +1,148 @@
+---
+title: "Chi Squared Test"
+output: 
+  html_document:
+    theme: cerulean
+    code_folding: hide
+---
+
+
+<!-- Directions
+
+Come up with a chi squared test analysis of your own creation. 
+
+* Write the Background and clearly state your question. Then collect data and perform the chi-squared test analysis in order to answer your question. Use the proper order of first, ask the question, then second, figure out the answer.
+
+* You can use data from 
+    - An R data set
+    - the internet (like weather data, Facebook data, or sports data) 
+    - your own experiment 
+    - your own observational study
+* However,     
+    - Do not violate the "Human Subjects Rules" of the university: http://www.byui.edu/executive-strategy-and-planning/institutional-research/research-and-assessments/research-and-surveys
+
+* You need a sample size large enough to meet the requirements of the chi squared test. Unfortunately, the sample size is completely dependent on the situation you select. A good rule of thumb is 10 observations per "combination-group" in your data.
+
+-->
+```{r, message=FALSE, warning=FALSE}
+library(haven)
+gss2021 <- read_sas("../../2021_sas/gss2021.sas7bdat",
+NULL)
+library(tidyverse)
+library(DT)
+library(pander)
+library(readr)
+library(mosaic)
+library(car)
+
+```
+
+```{r, message=FALSE, warning=FALSE}
+newgss2021 <- select(gss2021, c("PRES16", "POLVIEWS"))
+newgss2021 <- filter(newgss2021, PRES16!=1 & PRES16!=2)
+newgss2021 <- newgss2021 %>% 
+  mutate(Political_Spectrum=case_when(POLVIEWS==1 ~ "Extremely Liberal",
+                   POLVIEWS==2 ~ "Liberal",
+                   POLVIEWS==3 ~ "Slightly Liberal",
+                   POLVIEWS==4 ~ "Moderate",
+                   POLVIEWS==5 ~ "Slightly Conservative",
+                   POLVIEWS==6 ~ "Conservative",
+                   POLVIEWS==7 ~ "Extremely Conservative"), othervote=case_when(PRES16==3 ~ "Prefer Other Candidate", PRES16==4 ~ "Did Not Vote"))
+
+newgss2021 <- filter(newgss2021, Political_Spectrum!="NA")
+                                   
+```
+
+## Background
+
+During the 2016 election, some US citizens were in a bind when it came to who they would vote for. Some republicans didn't want to vote for Trump. Though they did not want to vote for Trump, they couldn't vote for Clinton either. And the opposite is true as well - other democrats didn't want to vote for Clinton.  There was a lack of trust in both political parties. Consequentially, some people decided to cast their vote to another candidate, or in some cases, not vote at all. 
+
+Because of the peculiarity of this election, a test will be conducted using the data that comes from the General Social Survey of 2021. The question that will be posed is "Is there a connection between how someone didn't vote for the two candidates and their political ideology?"
+
+## Hypothesis
+
+The variables that we are comparing are categorical and thus need to be tested with a Chi-Squared test. The hypotheses in this analysis will test to see if the way that people voted (voting for another candidate or not voting at all) is associated with where they are on the political spectrum. These are the hypotheses:
+
+$$
+H_0: \text{The way people voted during the 2016 election and their political ideology are independent}.
+$$
+$$
+H_0: \text{The way people voted during the 2016 election and their political ideology are associated.}
+$$
+A significance level of $0.05$ will be used to measure the significance of the $p-value$.
+
+## Analysis
+
+Here is a table and number count of the people who didn't vote or voted for another presidential candidate and the number of those who were in each political catagory.
+
+Each political category is ordered in a list from 1 to 7. 1 being most liberal, 7, most conservative.
+
+1. Extremely Liberal
+2. Liberal
+3. Slightly Liberal
+4. Moderate
+5. Slightly Conservative
+6. Conservative
+7. Extremely Conservative
+
+```{r}
+table(newgss2021$othervote, newgss2021$POLVIEWS) %>% 
+  pander()
+```
+Something interesting to notice is that those who were "Moderate" had the highest proportion of those from both voting categories. To be precise, 54% of the respondents were "Moderate" in the "Did Not Vote" group and 39% of the respondents were "Moderate" in the "Prefer Other Candidate" group. It could be that to those who are "Moderate", voting for either candidate was not an appealing idea. 
+
+Of those who were a 1 or a 7 on the political spectrum, they preferred to defer their vote rather than not vote. But, less appeared to defer their vote if they were extremely conservative rather than those who were extremely liberal.
+
+To take a better look, here is a visual of the outcomes from the survey.
+
+```{r}
+#barplot(table(newgss2021$othervote), xlab="Vote Decision",beside=TRUE, col=c("dodgerblue3","firebrick3"))
+
+#barplot(table(newgss2021$POLVIEWS), xlab="Political Spectrum", ylab = "Frequency",beside=TRUE, col=c("darkblue","dodgerblue3", "deepskyblue2","white","firebrick2","firebrick3","firebrick4"), legend.text = c('Extrememly Liberal','Liberal','Slightly Liberal','Moderate','Slightly Conservative','Conservative','Extremely Conservative'),args.legend = list(cex=0.8,bty="n"))
+
+barplot(table(newgss2021$POLVIEWS, newgss2021$othervote),beside=TRUE, col=c("darkblue","dodgerblue3", "deepskyblue2","white","firebrick2","firebrick3","firebrick4"), legend.text = c('Extrememly Liberal','Liberal','Slightly Liberal','Moderate','Slightly Conservative','Conservative','Extremely Conservative'), xlab="Political Spectrum", ylab="Frequency", main= "Moderates Chose Not to Vote Most", args.legend = list(cex=0.8,bty="n"), xlim=c(0,20))
+```
+
+One might say that the bar plots have a normal shape to them. This could imply that the more extreme your political ideology, either far left or far right, the less likely you are to either vote for another candidate or not vote at all. This could be that these are the people that are the most opinionated and thus, if the candidate representing their political party does not meet their standards, they would be in the know of another candidate that might fit their political ideologies. 
+
+The opposite of this is if your are moderate, not swinging left or right, then according to this bar plot, you are more likely to defer your vote than not vote at all if there are two candidates you don't agree with.
+
+But to be completely honest, this is a speculation about the data. We can not make any certain interpretation about the data until the Chi-Squared Test has been conducted.
+
+```{r, message=FALSE, warning=FALSE}
+x <- table(newgss2021$othervote, newgss2021$POLVIEWS)
+chisq.test(x) %>% 
+  pander()
+```
+
+From the test, we fail to reject the null with a $p-value$ of $.2066$. Thus, the previous interpretations should not be regarded as truth, but as an attempt to understand the data through speculation. 
+
+### Requirements
+
+The requirements have been met for expected counts (though they are not all greater than or equal to 5, the average of them is at least 5) so we can trust that the p-value is not invalid.
+
+##### Expected Counts
+
+```{r, message=FALSE, warning=FALSE}
+novotes <- chisq.test(x)
+novotes$expected %>% 
+  pander()
+```
+
+Below are the residuals which help us see the difference between the observed counts and the expected counts. If there were large residuals (in this case there are not), that would mean that how people chose to not vote for a president and their political ideology are associated with each other. Observing the residual counts below, the highest difference is about a 1.5. Because this is the highest residual, it makes sense that we did not reject the null.
+
+---
+
+##### Residuals
+```{r,message=FALSE, warning=FALSE}
+novotes$residuals %>% 
+  pander()
+```
+
+
+
+## Interpretation
+
+We cannot say that your political ideology and your decision to vote for another candidate or not to vote are associated. It may be possible that by simplifying the political spectrum may prove to have significant results. This could be done by only testing the political ideologies of just being liberal, moderate, and conservative.
+
+It appears that the 2016 election did not have a significant effect on someone's political ideologies and the way that people decided to not vote for Trump or Clinton.
